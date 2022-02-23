@@ -385,11 +385,19 @@ class Patient extends FHIRObject {
   }
 
   findRecords(profile) {
-    const classInfo = this._modelInfo.findClass(profile);
+    let classInfo = this._modelInfo.findClass(profile);
     if (classInfo == null) {
-      console.error(`Failed to find type info for ${profile}`);
-      return [];
+      console.warn(`Failed to find type info for ${profile}. Falling back to searching in meta.profile.`);
+
+      // fallback search by meta.profile
+      return this._bundle.entry.filter( e => {
+        return e.resource && e.resource.meta && e.resource.meta.profile && e.resource.meta.profile.includes(profile);
+      }).map( e => {
+        classInfo = this._modelInfo.findClass(e.resource.resourceType);
+        return new FHIRObject(e.resource, classInfo, this._modelInfo);
+      });
     }
+
     const resourceType = classInfo.name.replace(/^FHIR\./, '');
     const records = this._bundle.entry
       .filter(e => {
