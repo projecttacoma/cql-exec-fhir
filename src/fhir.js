@@ -52,30 +52,31 @@ class FHIRWrapper {
 }
 
 class PatientSource {
-  constructor(filePathOrXML) {
+  constructor(filePathOrXML, shouldCheckProfile = false) {
     this._index = 0;
     this._bundles = [];
+    this._shouldCheckProfile = shouldCheckProfile;
     this._modelInfo = load(filePathOrXML);
   }
 
   // Convenience factory method for getting a FHIR 1.0.2 (DSTU2) Patient Source
-  static FHIRv102() {
-    return new PatientSource(FHIRv102XML);
+  static FHIRv102(shouldCheckProfile = false) {
+    return new PatientSource(FHIRv102XML, shouldCheckProfile);
   }
 
   // Convenience factory method for getting a FHIR 3.0.0 (STU3) Patient Source
-  static FHIRv300() {
-    return new PatientSource(FHIRv300XML);
+  static FHIRv300(shouldCheckProfile = false) {
+    return new PatientSource(FHIRv300XML, shouldCheckProfile);
   }
 
   // Convenience factory method for getting a FHIR 4.0.0 (R4) Patient Source
-  static FHIRv400() {
-    return new PatientSource(FHIRv400XML);
+  static FHIRv400(shouldCheckProfile = false) {
+    return new PatientSource(FHIRv400XML, shouldCheckProfile);
   }
 
   // Convenience factory method for getting a FHIR 4.0.1 (R4) Patient Source
-  static FHIRv401() {
-    return new PatientSource(FHIRv401XML);
+  static FHIRv401(shouldCheckProfile = false) {
+    return new PatientSource(FHIRv401XML, shouldCheckProfile);
   }
 
   get version() {
@@ -88,7 +89,7 @@ class PatientSource {
 
   currentPatient() {
     if (this._index < this._bundles.length) {
-      return new Patient(this._bundles[this._index], this._modelInfo);
+      return new Patient(this._bundles[this._index], this._modelInfo, this._shouldCheckProfile);
     }
   }
 
@@ -107,9 +108,10 @@ class PatientSource {
 }
 
 class AsyncPatientSource {
-  constructor(filePathOrXML, serverUrl) {
+  constructor(filePathOrXML, serverUrl, shouldCheckProfile = false) {
     this._index = 0;
     this._patientIds = [];
+    this._shouldCheckProfile = shouldCheckProfile;
     this._modelInfo = load(filePathOrXML);
     this.fhirClient = axios.create({
       baseURL: serverUrl,
@@ -122,23 +124,23 @@ class AsyncPatientSource {
   }
 
   // Convenience factory method for getting a FHIR 1.0.2 (DSTU2) Patient Source
-  static FHIRv102(serverUrl) {
-    return new AsyncPatientSource(FHIRv102XML, serverUrl);
+  static FHIRv102(serverUrl, shouldCheckProfile = false) {
+    return new AsyncPatientSource(FHIRv102XML, serverUrl, shouldCheckProfile);
   }
 
   // Convenience factory method for getting a FHIR 3.0.0 (STU3) Patient Source
-  static FHIRv300(serverUrl) {
-    return new AsyncPatientSource(FHIRv300XML, serverUrl);
+  static FHIRv300(serverUrl, shouldCheckProfile = false) {
+    return new AsyncPatientSource(FHIRv300XML, serverUrl, shouldCheckProfile);
   }
 
   // Convenience factory method for getting a FHIR 4.0.0 (R4) Patient Source
-  static FHIRv400(serverUrl) {
-    return new AsyncPatientSource(FHIRv400XML, serverUrl);
+  static FHIRv400(serverUrl, shouldCheckProfile = false) {
+    return new AsyncPatientSource(FHIRv400XML, serverUrl, shouldCheckProfile);
   }
 
   // Convenience factory method for getting a FHIR 4.0.1 (R4) Patient Source
-  static FHIRv401(serverUrl) {
-    return new AsyncPatientSource(FHIRv401XML, serverUrl);
+  static FHIRv401(serverUrl, shouldCheckProfile = false) {
+    return new AsyncPatientSource(FHIRv401XML, serverUrl, shouldCheckProfile);
   }
 
   loadPatientIds(ids) {
@@ -150,7 +152,12 @@ class AsyncPatientSource {
       const id = this._patientIds[this._index];
       try {
         const response = await this.fhirClient.get(`/Patient/${id}`);
-        return new AsyncPatient(response.data, this._modelInfo, this.fhirClient);
+        return new AsyncPatient(
+          response.data,
+          this._modelInfo,
+          this.fhirClient,
+          this._shouldCheckProfile
+        );
       } catch (e) {
         throw new Error(
           `Unable to retrieve Patient/${id} from server. Responded with message: ${e.message}`
@@ -362,7 +369,7 @@ class FHIRObject {
 }
 
 class Patient extends FHIRObject {
-  constructor(bundle, modelInfo) {
+  constructor(bundle, modelInfo, shouldCheckProfile = false) {
     const patientClass = modelInfo.patientClassIdentifier
       ? modelInfo.patientClassIdentifier
       : modelInfo.patientClassName;
@@ -370,6 +377,8 @@ class Patient extends FHIRObject {
     const ptEntry = bundle.entry.find(e => e.resource && e.resource.resourceType == resourceType);
     const ptClass = modelInfo.findClass(patientClass);
     super(ptEntry.resource, ptClass, modelInfo);
+    this._shouldCheckProfile = shouldCheckProfile;
+
     // Define a "private" un-enumerable property to hold the bundle
     Object.defineProperty(this, '_bundle', {
       value: bundle,
@@ -393,7 +402,13 @@ class Patient extends FHIRObject {
     const resourceType = classInfo.name.replace(/^FHIR\./, '');
     const records = this._bundle.entry
       .filter(e => {
-        return e.resource && e.resource.resourceType == resourceType;
+        if (e.resource && e.resource.resourceType == resourceType) {
+          if (this._shouldCheckProfile) {
+            return e.resource.meta.profile.includes(profile);
+          }
+          return true;
+        }
+        return false;
       })
       .map(e => {
         return new FHIRObject(e.resource, classInfo, this._modelInfo);
@@ -403,19 +418,21 @@ class Patient extends FHIRObject {
 }
 
 class AsyncPatient extends FHIRObject {
-  constructor(patientData, modelInfo, fhirClient) {
+  constructor(patientData, modelInfo, fhirClient, shouldCheckProfile) {
     const patientClass = modelInfo.patientClassIdentifier
       ? modelInfo.patientClassIdentifier
       : modelInfo.patientClassName;
     const ptClass = modelInfo.findClass(patientClass);
     super(patientData, ptClass, modelInfo);
+    this._shouldCheckProfile = shouldCheckProfile;
 
     // Define a "private" un-enumerable property to hold the patient data
     Object.defineProperty(this, '_patientData', {
       value: patientData,
       enumerable: false
     });
-    this.fhirClient = fhirClient;
+    this._fhirClient = fhirClient;
+    this._shouldCheckProfile = shouldCheckProfile;
   }
 
   async findRecords(profile) {
@@ -435,15 +452,17 @@ class AsyncPatient extends FHIRObject {
     );
     let records = [];
     if (!compartmentInfo[0] || !compartmentInfo[0].param) {
-      const request = `/${resourceType}`;
-      const response = await this.fhirClient.get(request);
+      const request = `/${resourceType}${this._shouldCheckProfile ? `?_profile=${profile}` : ''}`;
+      const response = await this._fhirClient.get(request);
       if (response.data.total > 0) {
         records = response.data.entry.map(e => e.resource);
       }
     } else {
       records = compartmentInfo[0].param.map(async searchTerm => {
-        const request = `/${resourceType}?${searchTerm}=Patient/${this._patientData.id}`;
-        const response = await this.fhirClient.get(request);
+        const request = `/${resourceType}?${searchTerm}=Patient/${this._patientData.id}${
+          this._shouldCheckProfile ? `&_profile=${profile}` : ''
+        }`;
+        const response = await this._fhirClient.get(request);
         if (response.status !== 200) {
           throw new Error(
             `Received status code: ${response.status} when searching for ${resourceType}s using request: ${request}`

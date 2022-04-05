@@ -509,6 +509,29 @@ describe('Async Patient', () => {
     );
   });
 
+  it('correctly executes a findRecords() with shouldCheckProfile flag set to true', async () => {
+    nock(TEST_SERVER_URL)
+      .get(`/Condition?patient=Patient/${TEST_PATIENT_SOURCE_IDS[0]}&_profile=Condition`)
+      .reply(200, EXAMPLE_EMPTY_SEARCH);
+
+    nock(TEST_SERVER_URL)
+      .get(`/Condition?asserter=Patient/${TEST_PATIENT_SOURCE_IDS[0]}&_profile=Condition`)
+      .reply(200, EXAMPLE_NON_EMPTY_CONDITION_SEARCH);
+    const modelInfo = load(FHIRv401XML);
+    const testPatient = new cqlfhir.AsyncPatient(
+      patientLuna.entry[0].resource,
+      modelInfo,
+      TEST_SERVER_INSTANCE,
+      true
+    );
+
+    const records = await testPatient.findRecords('Condition');
+    const classInfo = modelInfo.findClass('Condition');
+    expect(JSON.stringify(records)).equal(
+      JSON.stringify([new cqlfhir.FHIRObject(conditionResource, classInfo, modelInfo)])
+    );
+  });
+
   it('correctly executes a findRecords() for resource that cannot reference patient', async () => {
     nock(TEST_SERVER_URL).get(`/Location`).reply(200, EXAMPLE_NON_EMPTY_LOCATION_SEARCH);
 
