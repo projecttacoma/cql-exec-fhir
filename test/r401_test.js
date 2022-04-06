@@ -447,6 +447,27 @@ describe('#R4 v4.0.1', () => {
   });
 });
 
+describe(`PatientSource with shouldCheckProfile = true`, () => {
+  let patientSource;
+  before(() => {
+    patientSource = cqlfhir.PatientSource.FHIRv401(true);
+  });
+
+  beforeEach(() => {
+    patientSource.loadBundles([patientLuna, patientJohnnie]);
+  });
+
+  afterEach(() => patientSource.reset());
+
+  it('correctly filters out resources without the proper meta.profile', () => {
+    const pt = patientSource.currentPatient();
+    const conditions = pt.findRecords('Condition');
+    expect(conditions).to.have.length(1);
+    expect(conditions.every(c => c.getTypeInfo().name === 'Condition')).to.be.true;
+    expect(conditions[0].meta.profile[0].value).equal('Condition');
+  });
+});
+
 describe(`Async Patient Source`, () => {
   it('correctly returns patient data with valid currentPatient() call', async () => {
     const aps = cqlfhir.AsyncPatientSource.FHIRv401(TEST_SERVER_URL);

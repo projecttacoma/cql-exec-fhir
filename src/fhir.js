@@ -404,7 +404,7 @@ class Patient extends FHIRObject {
       .filter(e => {
         if (e.resource && e.resource.resourceType == resourceType) {
           if (this._shouldCheckProfile) {
-            return e.resource.meta.profile.includes(profile);
+            return e.resource?.meta?.profile?.includes(profile);
           }
           return true;
         }
