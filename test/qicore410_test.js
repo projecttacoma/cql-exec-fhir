@@ -4,6 +4,7 @@ const { expect } = require('chai');
 
 const patientNumer = require('./fixtures/qicore4/tests-numer-EXM124-bundle.json');
 const patientDenom = require('./fixtures/qicore4/tests-denom-EXM124-bundle.json');
+const encounterDetails = { datatype: 'Encounter' };
 
 describe('#R4 v4.0.1 with QICore 4.1.0 Data', () => {
   let patientSource;
@@ -98,10 +99,12 @@ describe('#R4 v4.0.1 with QICore 4.1.0 Data', () => {
     expect(paymentReconciliations).to.be.empty;
   });
 
+  //AKA the ask here is to see if adding proper retrieveDetails in the findRecords call here makes this test pass
   it('should find records by QICore profile URL (e.g., http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-encounter)', () => {
     const pt = patientSource.currentPatient();
     const encounters = pt.findRecords(
-      'http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-encounter'
+      'http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-encounter',
+      encounterDetails
     );
     expect(encounters).to.have.length(1);
     expect(encounters.every(c => c.getTypeInfo().name === 'Encounter')).to.be.true;

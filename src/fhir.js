@@ -394,33 +394,11 @@ class Patient extends FHIRObject {
   }
 
   findRecords(profile, retrievedDetails) {
-    let classInfo;
-    if (retrievedDetails) {
-      classInfo = this._modelInfo.findClass(retrievedDetails.dataType);
-      const resourceType = classInfo.name.replace(/^FHIR\./, '');
-      const records = this._bundle.entry
-        .filter(e => {
-          return e.resource && e.resource.resourceType == resourceType;
-        })
-        .map(e => {
-          return new FHIRObject(e.resource, classInfo, this._modelInfo);
-        });
-      return records;
-    } else {
-      classInfo = this._modelInfo.findClass(profile);
-      if (classInfo == null) {
-        console.error(`Failed to find type info for ${profile}`);
-        return [];
-      }
-      const resourceType = classInfo.name.replace(/^FHIR\./, '');
-      const records = this._bundle.entry
-        .filter(e => {
-          return e.resource && e.resource.resourceType == resourceType;
-        })
-        .map(e => {
-          return new FHIRObject(e.resource, classInfo, this._modelInfo);
-        });
-      return records;
+    const classInfo = getClassInfo(profile, retrievedDetails, this._modelInfo);
+
+    if (classInfo == null) {
+      console.error(`Failed to find type info for ${profile}`);
+      return [];
     }
     const resourceType = classInfo.name.replace(/^FHIR\./, '');
     const records = this._bundle.entry
@@ -462,8 +440,8 @@ class AsyncPatient extends FHIRObject {
     this._shouldCheckProfile = shouldCheckProfile;
   }
 
-  async findRecords(profile) {
-    const classInfo = this._modelInfo.findClass(profile);
+  async findRecords(profile, retrievedDetails) {
+    const classInfo = getClassInfo(profile, retrievedDetails, this._modelInfo);
     if (classInfo == null) {
       console.error(`Failed to find type info for ${profile}`);
       return [];
@@ -699,7 +677,16 @@ function toCode(f) {
     return f.value;
   }
 }
+function getClassInfo(profile, retrievedDetails, _modelInfo) {
+  let classInfo = [];
+  if (retrievedDetails) {
+    classInfo = _modelInfo.findClass(retrievedDetails.datatype);
+  } else {
+    classInfo = _modelInfo.findClass(profile);
+  }
 
+  return classInfo;
+}
 module.exports = {
   PatientSource,
   FHIRWrapper,
