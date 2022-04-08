@@ -393,8 +393,8 @@ class Patient extends FHIRObject {
     }
   }
 
-  findRecords(profile, retrievedDetails) {
-    const classInfo = getClassInfo(profile, retrievedDetails, this._modelInfo);
+  findRecords(profile, retrieveDetails) {
+    const classInfo = getClassInfo(profile, retrieveDetails, this._modelInfo);
 
     if (classInfo == null) {
       console.error(`Failed to find type info for ${profile}`);
@@ -440,8 +440,8 @@ class AsyncPatient extends FHIRObject {
     this._shouldCheckProfile = shouldCheckProfile;
   }
 
-  async findRecords(profile, retrievedDetails) {
-    const classInfo = getClassInfo(profile, retrievedDetails, this._modelInfo);
+  async findRecords(profile, retrieveDetails) {
+    const classInfo = getClassInfo(profile, retrieveDetails, this._modelInfo);
     if (classInfo == null) {
       console.error(`Failed to find type info for ${profile}`);
       return [];
@@ -677,10 +677,10 @@ function toCode(f) {
     return f.value;
   }
 }
-function getClassInfo(profile, retrievedDetails, _modelInfo) {
+function getClassInfo(profile, retrieveDetails, _modelInfo) {
   let classInfo = null;
-  if (retrievedDetails) {
-    classInfo = _modelInfo.findClass(retrievedDetails.datatype);
+  if (retrieveDetails) {
+    classInfo = _modelInfo.findClass(retrieveDetails.datatype);
   } else {
     classInfo = _modelInfo.findClass(profile);
   }
