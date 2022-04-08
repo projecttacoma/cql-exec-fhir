@@ -678,7 +678,7 @@ function toCode(f) {
   }
 }
 function getClassInfo(profile, retrievedDetails, _modelInfo) {
-  let classInfo = [];
+  let classInfo = null;
   if (retrievedDetails) {
     classInfo = _modelInfo.findClass(retrievedDetails.datatype);
   } else {

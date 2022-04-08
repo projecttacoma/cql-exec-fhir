@@ -99,7 +99,6 @@ describe('#R4 v4.0.1 with QICore 4.1.0 Data', () => {
     expect(paymentReconciliations).to.be.empty;
   });
 
-  //AKA the ask here is to see if adding proper retrieveDetails in the findRecords call here makes this test pass
   it('should find records by QICore profile URL (e.g., http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-encounter)', () => {
     const pt = patientSource.currentPatient();
     const encounters = pt.findRecords(
