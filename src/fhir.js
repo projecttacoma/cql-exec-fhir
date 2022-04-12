@@ -393,8 +393,9 @@ class Patient extends FHIRObject {
     }
   }
 
-  findRecords(profile) {
-    const classInfo = this._modelInfo.findClass(profile);
+  findRecords(profile, retrieveDetails) {
+    const classInfo = getClassInfo(profile, retrieveDetails, this._modelInfo);
+
     if (classInfo == null) {
       console.error(`Failed to find type info for ${profile}`);
       return [];
@@ -439,8 +440,8 @@ class AsyncPatient extends FHIRObject {
     this._shouldCheckProfile = shouldCheckProfile;
   }
 
-  async findRecords(profile) {
-    const classInfo = this._modelInfo.findClass(profile);
+  async findRecords(profile, retrieveDetails) {
+    const classInfo = getClassInfo(profile, retrieveDetails, this._modelInfo);
     if (classInfo == null) {
       console.error(`Failed to find type info for ${profile}`);
       return [];
@@ -676,7 +677,16 @@ function toCode(f) {
     return f.value;
   }
 }
+function getClassInfo(profile, retrieveDetails, _modelInfo) {
+  let classInfo = null;
+  if (retrieveDetails) {
+    classInfo = _modelInfo.findClass(retrieveDetails.datatype);
+  } else {
+    classInfo = _modelInfo.findClass(profile);
+  }
 
+  return classInfo;
+}
 module.exports = {
   PatientSource,
   FHIRWrapper,
