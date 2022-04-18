@@ -429,7 +429,6 @@ class AsyncPatient extends FHIRObject {
       : modelInfo.patientClassName;
     const ptClass = modelInfo.findClass(patientClass);
     super(patientData, ptClass, modelInfo);
-    this._shouldCheckProfile = shouldCheckProfile;
 
     // Define a "private" un-enumerable property to hold the patient data
     Object.defineProperty(this, '_patientData', {
