@@ -1,1 +1,4 @@
-module.exports = require('./fhir');
+module.exports = {
+  ...require('./fhir'),
+  ...require('./load')
+};
