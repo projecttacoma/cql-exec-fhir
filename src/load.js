@@ -384,4 +384,4 @@ function stripNS(str) {
   return str.replace(/.*:/, '');
 }
 
-module.exports = load;
+module.exports = { load };
