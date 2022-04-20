@@ -3,7 +3,7 @@ const cqlfhir = require('../src/index');
 const { expect } = require('chai');
 const nock = require('nock');
 const axios = require('axios');
-const load = require('../src/load');
+const { load } = require('../src/load');
 
 const conditionResource = require('./fixtures/r4/Condition_f201.json');
 const locationResource = require('./fixtures/r4/Location.json');

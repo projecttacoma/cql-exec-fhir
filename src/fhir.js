@@ -1,6 +1,6 @@
 const axios = require('axios');
 const cql = require('cql-execution');
-const load = require('./load');
+const { load } = require('./load');
 const patientCompartmentDefinition = require('./compartmentdefinition-patient.json');
 const FHIRv102XML = require('./modelInfos/fhir-modelinfo-1.0.2.xml.js');
 const FHIRv300XML = require('./modelInfos/fhir-modelinfo-3.0.0.xml.js');
