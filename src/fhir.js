@@ -153,7 +153,8 @@ class AsyncPatientSource {
    */
   async loadGroupId(id) {
     try {
-      const group = await this.fhirClient.get(`/Group/${id}`);
+      const response = await this.fhirClient.get(`/Group/${id}`);
+      const group = response.data;
       const ids = group.member.map(m => {
         return m.entity.reference.split('/')[1];
       });
