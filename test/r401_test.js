@@ -518,7 +518,7 @@ describe(`Async Patient Source`, () => {
   });
 });
 
-describe('Async Patient Source with group Id', () => {
+describe('Async Patient Source with group id', () => {
   it('correctly returns patient data with valid currentPatient() call when group Id is used to obtain patient ids', async () => {
     const aps = cqlfhir.AsyncPatientSource.FHIRv401(TEST_SERVER_URL);
     nock(TEST_SERVER_URL)

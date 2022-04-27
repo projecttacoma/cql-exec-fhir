@@ -148,7 +148,7 @@ class AsyncPatientSource {
   }
 
   /**
-   * Load patient Ids that appear in the Group resource member
+   * Load patient ids that appear in the Group resource member
    * @param {string} id Group resource identifier
    */
   async loadGroupId(id) {
