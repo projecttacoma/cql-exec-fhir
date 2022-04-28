@@ -147,6 +147,25 @@ class AsyncPatientSource {
     this._patientIds = this._patientIds.concat(ids);
   }
 
+  /**
+   * Load patient ids that appear in the Group resource member
+   * @param {string} id Group resource identifier
+   */
+  async loadGroupId(id) {
+    try {
+      const response = await this.fhirClient.get(`/Group/${id}`);
+      const group = response.data;
+      const ids = group.member.map(m => {
+        return m.entity.reference.split('/')[1];
+      });
+      this.loadPatientIds(ids);
+    } catch (e) {
+      throw new Error(
+        `Unable to retrieve Group/${id} from server. Responded with message: ${e.message}`
+      );
+    }
+  }
+
   async currentPatient() {
     if (this._index < this._patientIds.length) {
       const id = this._patientIds[this._index];

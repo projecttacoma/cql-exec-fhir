@@ -25,6 +25,17 @@ const TEST_PATIENT_SOURCE_IDS = [
   patientJohnnie.entry[0].resource.id
 ];
 
+const TEST_GROUP = {
+  resourceType: 'Group',
+  id: 'test-group',
+  type: 'person',
+  actual: 'true',
+  member: [
+    { entity: { reference: `Patient/${patientLuna.entry[0].resource.id}` } },
+    { entity: { reference: `Patient/${patientJohnnie.entry[0].resource.id}` } }
+  ]
+};
+
 const EXAMPLE_EMPTY_SEARCH = {
   resourceType: 'Bundle',
   type: 'searchset',
@@ -504,6 +515,46 @@ describe(`Async Patient Source`, () => {
     aps.loadPatientIds(TEST_PATIENT_SOURCE_IDS);
     const response = await aps.nextPatient();
     expect(response.get('id').value).equal(patientJohnnie.entry[0].resource.id);
+  });
+});
+
+describe('Async Patient Source with group id', () => {
+  it('correctly returns patient data with valid currentPatient() call when group Id is used to obtain patient ids', async () => {
+    const aps = cqlfhir.AsyncPatientSource.FHIRv401(TEST_SERVER_URL);
+    nock(TEST_SERVER_URL)
+      .get(`/Patient/${TEST_PATIENT_SOURCE_IDS[0]}`)
+      .reply(200, patientLuna.entry[0].resource);
+    nock(TEST_SERVER_URL).get(`/Group/${TEST_GROUP.id}`).reply(200, TEST_GROUP);
+
+    await aps.loadGroupId(TEST_GROUP.id);
+    const response = await aps.currentPatient();
+    expect(response.get('id').value).equal(patientLuna.entry[0].resource.id);
+  });
+
+  it('correctly returns patient data with valid nextPatient() call when group id is used to obtain patient ids', async () => {
+    const aps = cqlfhir.AsyncPatientSource.FHIRv401(TEST_SERVER_URL);
+    nock(TEST_SERVER_URL)
+      .get(`/Patient/${TEST_PATIENT_SOURCE_IDS[1]}`)
+      .reply(200, patientJohnnie.entry[0].resource);
+    nock(TEST_SERVER_URL).get(`/Group/${TEST_GROUP.id}`).reply(200, TEST_GROUP);
+
+    await aps.loadGroupId(TEST_GROUP.id);
+    const response = await aps.nextPatient();
+    expect(response.get('id').value).equal(patientJohnnie.entry[0].resource.id);
+  });
+
+  it('throws correct error when specified group id cannot be found on the server', async () => {
+    const INVALID_ID = 'INVALID_ID';
+    const aps = cqlfhir.AsyncPatientSource.FHIRv401(TEST_SERVER_URL);
+    nock(TEST_SERVER_URL).get(`/Group/${INVALID_ID}`).reply(400);
+
+    try {
+      await aps.loadGroupId(INVALID_ID);
+    } catch (e) {
+      expect(e.message).equal(
+        `Unable to retrieve Group/INVALID_ID from server. Responded with message: Request failed with status code 400`
+      );
+    }
   });
 });
 
