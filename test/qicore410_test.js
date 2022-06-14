@@ -113,6 +113,51 @@ describe('#R4 v4.0.1 with QICore 4.1.0 Data', () => {
     expect(coverage).to.be.empty;
   });
 
+  it('should find patient record by QICore profile URL', () => {
+    const pt = patientSource.currentPatient();
+    const patients = pt.findRecords(
+      'http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-patient',
+      {
+        datatype: 'Patient'
+      }
+    );
+    expect(patients).to.have.length(1);
+  });
+
+  it('should find patient with profile not in meta.profile when meta.profile checks are disabled', () => {
+    const pt = patientSource.currentPatient();
+    const patients = pt.findRecords('http://example.com/FakeStructureDefintion/fake-patient', {
+      datatype: 'Patient'
+    });
+    expect(patients).to.have.length(1);
+  });
+
+  it('should error when attempting to find patient with profile not in meta.profile when check profiles is enabled', () => {
+    const profileCheckPatientSource = cqlfhir.PatientSource.FHIRv401(true);
+    profileCheckPatientSource.loadBundles([patientNumer, patientDenom]);
+    const pt = profileCheckPatientSource.currentPatient();
+    expect(() => {
+      pt.findRecords('http://example.com/FakeStructureDefintion/fake-patient', {
+        datatype: 'Patient'
+      });
+    }).to.throw(
+      'Patient record with profile http://example.com/FakeStructureDefintion/fake-patient was not found'
+    );
+  });
+
+  it('should not error when attempting to find resource other than Patient with profile not in meta.profile when check profiles is enabled', () => {
+    const profileCheckPatientSource = cqlfhir.PatientSource.FHIRv401(true);
+    profileCheckPatientSource.loadBundles([patientNumer, patientDenom]);
+    const pt = profileCheckPatientSource.currentPatient();
+    let encounters;
+    expect(() => {
+      encounters = pt.findRecords('http://example.com/FakeStructureDefintion/fake-encounter', {
+        datatype: 'Encounter'
+      });
+    }).to.not.throw();
+    expect(encounters).to.have.length(0);
+  });
+
   it('should find a single record', () => {
     const pt = patientSource.currentPatient();
     const encounter = pt.findRecord('Encounter');

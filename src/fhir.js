@@ -437,6 +437,10 @@ class Patient extends FHIRObject {
       .map(e => {
         return new FHIRObject(e.resource, classInfo, this._modelInfo);
       });
+
+    if (this._shouldCheckProfile && resourceType === 'Patient' && records.length === 0) {
+      throw new Error(`Patient record with profile ${profile} was not found.`);
+    }
     return records;
   }
 }
