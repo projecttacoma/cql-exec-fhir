@@ -1,10 +1,25 @@
 const cql = require('cql-execution');
 const cqlfhir = require('../src/index');
+const { load } = require('../src/load');
 const { expect } = require('chai');
+const axios = require('axios');
+
+const FHIRv401XML = require('../src/modelInfos/fhir-modelinfo-4.0.1.xml.js');
 
 const patientNumer = require('./fixtures/qicore4/tests-numer-EXM124-bundle.json');
 const patientDenom = require('./fixtures/qicore4/tests-denom-EXM124-bundle.json');
+const patientLuna = require('./fixtures/r4/Luna60_McCullough561_6662f0ca-b617-4e02-8f55-7275e9f49aa0.json');
 const encounterDetails = { datatype: 'Encounter' };
+
+const TEST_SERVER_URL = 'http://www.example.com';
+const TEST_SERVER_INSTANCE = axios.create({
+  baseURL: TEST_SERVER_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/fhir+json',
+    accept: 'application/fhir+json'
+  }
+});
 
 describe('#R4 v4.0.1 with QICore 4.1.0 Data', () => {
   let patientSource;
@@ -165,6 +180,81 @@ describe('#R4 v4.0.1 with QICore 4.1.0 Data', () => {
     expect(encounter.getId()).to.equal('numer-EXM124-2');
     const paymentReconciliation = pt.findRecord('PaymentReconciliation');
     expect(paymentReconciliation).to.be.undefined;
+  });
+});
+
+describe('AsyncPatient with QICore data', () => {
+  it('does not error when find findRecords() request for Patient resource with valid profile with shouldCheckProfile flag set to true', async () => {
+    const modelInfo = load(FHIRv401XML);
+    const testPatient = new cqlfhir.AsyncPatient(
+      patientNumer.entry[2].resource,
+      modelInfo,
+      TEST_SERVER_INSTANCE,
+      true
+    );
+
+    await testPatient
+      .findRecords('http://hl7.org/fhir/us/qicore/StructureDefinition/qicore-patient', {
+        datatype: 'Patient'
+      })
+      .then(
+        resources => {
+          expect(resources).to.have.length(1);
+        },
+        reason => {
+          expect.fail('findRecords should not have been rejected');
+        }
+      );
+  });
+
+  it('errors when find findRecords() request for Patient resource with invalid profile with shouldCheckProfile flag set to true', async () => {
+    const modelInfo = load(FHIRv401XML);
+    const testPatient = new cqlfhir.AsyncPatient(
+      patientNumer.entry[2].resource,
+      modelInfo,
+      TEST_SERVER_INSTANCE,
+      true
+    );
+
+    await testPatient
+      .findRecords('http://example.com/FakeStructureDefintion/fake-patient', {
+        datatype: 'Patient'
+      })
+      .then(
+        () => {
+          expect.fail('findRecords should have been rejected');
+        },
+        reason => {
+          expect(reason.message).to.equal(
+            'Patient record with profile http://example.com/FakeStructureDefintion/fake-patient was not found.'
+          );
+        }
+      );
+  });
+
+  it('errors when find findRecords() request for Patient resource with no meta.profile with shouldCheckProfile flag set to true', async () => {
+    const modelInfo = load(FHIRv401XML);
+    const testPatient = new cqlfhir.AsyncPatient(
+      patientLuna.entry[0].resource,
+      modelInfo,
+      TEST_SERVER_INSTANCE,
+      true
+    );
+
+    await testPatient
+      .findRecords('http://example.com/FakeStructureDefintion/fake-patient', {
+        datatype: 'Patient'
+      })
+      .then(
+        () => {
+          expect.fail('findRecords should have been rejected');
+        },
+        reason => {
+          expect(reason.message).to.equal(
+            'Patient record with profile http://example.com/FakeStructureDefintion/fake-patient was not found.'
+          );
+        }
+      );
   });
 });
 
