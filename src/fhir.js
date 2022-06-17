@@ -437,6 +437,10 @@ class Patient extends FHIRObject {
       .map(e => {
         return new FHIRObject(e.resource, classInfo, this._modelInfo);
       });
+
+    if (this._shouldCheckProfile && resourceType === 'Patient' && records.length === 0) {
+      throw new Error(`Patient record with profile ${profile} was not found.`);
+    }
     return records;
   }
 }
@@ -467,7 +471,18 @@ class AsyncPatient extends FHIRObject {
     const resourceType = classInfo.name.replace(/^FHIR\./, '');
     // If the patient resource type is requested, return array with just this resource
     if (resourceType === 'Patient') {
-      return [this];
+      if (
+        this._shouldCheckProfile &&
+        !(
+          this._patientData.meta &&
+          this._patientData.meta.profile &&
+          this._patientData.meta.profile.includes(profile)
+        )
+      ) {
+        throw new Error(`Patient record with profile ${profile} was not found.`);
+      } else {
+        return [this];
+      }
     }
 
     const compartmentInfo = patientCompartmentDefinition.resource.filter(
